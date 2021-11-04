@@ -29,11 +29,11 @@ void MSM_StateInit(struct MSM_StateDataType *MSM)
  * @brief Main of this task is to manage state machines and wight their outputs
  *
  *									Diagram of main runtime in state 2 or 3.
- *  _______________	      ____________________	     ___________________________           _____________________________	   _______________________
- * |		   |	     |			  |	    |				|	  |			        |	  |			  |
+ *  _______________	         ____________________           ___________________________            _____________________________           _______________________
+ * |		  	   |         |                    |         |                           |         |                             |         |                       |
  * | Check sensors | - - - > | Assert Sensor Data | - - - > | Run Finite State Machines | - - - > | Finalize voting and execute | - - - > | Assert Data from RPI4 |
- * |_______________|         |____________________|	    |___________________________|	  |_____________________________|         |_______________________|
- * 	  ^																	      |
+ * |_______________|         |____________________|         |___________________________|	      |_____________________________|         |_______________________|
+ * 	  ^	                                                                                                                                          |
  *	  |___________________________________________________________________________________________________________________________________________|
  *
  * When Board Manager is in state 0 only data assertion from RPI4 is active.
@@ -94,7 +94,7 @@ void MSM_RunStateRuntime(struct MSM_StateDataType  * Robot_State)
 	break;
     case 1:
 	PollVector=0x89;//  set execution vector to max allowed config
-	CommSM_Runtime(&CM, ModbusDATA, &PollVector);//run comms state machine
+	CommSM_Runtime(&CM, ModbusDATA, &PollVector,0);//run comms state machine
 	VCSM_Runtime(&VCM, ModbusDATA, &PollVector, &PollVector);
 	// todo run voltage/current state machine
 	break;
@@ -137,10 +137,10 @@ void MSM_Runtime(struct MSM_StateDataType  * Robot_State)
 	{
     case MSM_SHUTDOWN:
 	//todo better debouce
-	if(!HAL_GPIO_ReadPin(Power_Switch_GPIO_Port, Power_Switch_Pin))
+	if(!HAL_GPIO_ReadPin(POWER_SWITCH_GPIO_Port, POWER_SWITCH_Pin))
 	    {
 	   osDelay(10);
-	    if(!HAL_GPIO_ReadPin(Power_Switch_GPIO_Port, Power_Switch_Pin))
+	    if(!HAL_GPIO_ReadPin(POWER_SWITCH_GPIO_Port, POWER_SWITCH_Pin))
 		{
 		Robot_State->state = MSM_INIT;
 		}

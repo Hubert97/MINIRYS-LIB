@@ -14,6 +14,7 @@ enum CommState {CSM_NONE, CSM_TOFS, CSM_MOT, CSM_TOFS_AND_MOT, CSM_SLEEP, CSM_SH
 
 struct CommStateMachineDataType{
     enum CommState state;
+    uint16_t sleep_timer;
 
 
 };
@@ -21,10 +22,11 @@ struct CommStateMachineDataType{
 void CommStateMachineInit(struct CommStateMachineDataType *CSM)
     {
     CSM->state = CSM_NONE;
+    CSM->sleep_timer = 0;
     }
 
 /**
- * @brief Temperature State Machine runtime decides which perypherials must be shutdown and which are free to be active.
+ * @brief Comm State Machine runtime decides which perypherials must be shutdown and which are free to be active.
  * More information about PollVector ANd how it work at MSM_Runtime in MinirysboardStateMachine.h
  * __7___6___5___4___3___2___1___0__
  * | 0 | 0 | 0 | 1 | 1 | 1 | 1 | 1 | - initial vector - some outputs are diabled due to machine state (i e no fan detected
@@ -47,32 +49,76 @@ void CommStateMachineInit(struct CommStateMachineDataType *CSM)
  * 10 BatCurrentVoltage;
  */
 
-void CommSM_Runtime(struct CommStateMachineDataType *CSM, uint16_t *CommShMem ,uint8_t *PollVector)
+void CommSM_Runtime(struct CommStateMachineDataType *CSM, uint16_t *CommShMem ,uint8_t *PollVector, uint8_t power_button_state )
     {
     switch(CSM->state)
 	{
     case CSM_NONE:
-	*PollVector = *PollVector & 0xE7;//  mask is 1110 0111 which means mot and tofs are forbidden
-	break;
+    	*PollVector = *PollVector & 0xE7;//  mask is 1110 0111 which means mot and tofs are forbidden
+    	if(CommShMem[3] == 8)	//this sucks but will work for now.
+    		CSM->state = CSM_SHUTDOWN;
+    	else if(CommShMem[3] == 2)
+    	{
+    		CSM->state = CSM_SLEEP;
+    		CSM->sleep_timer = CommShMem[4];
+    	}
+    	else if(CommShMem[3] == 4)
+    		CSM->state = CSM_TOFS;
+    	else if(CommShMem[3] == 16)
+    		CSM->state = CSM_MOT;
+    	else
+    		goto CSM_Err; //goto land fill
+    	break;
     case CSM_TOFS:
-	*PollVector = *PollVector & 0xEF;//  mask is 1110 1111 which means mot is forbidden
-	break;
+    	*PollVector = *PollVector & 0xEF;//  mask is 1110 1111 which means mot is forbidden
+    	if(CommShMem[3] == 32)
+    		CSM->state = CSM_NONE;
+    	else if(CommShMem[3] == 64)
+    		CSM->state = CSM_TOFS_AND_MOT;
+    	else
+    		goto CSM_Err;
+    	break;
     case CSM_MOT:
-	*PollVector = *PollVector & 0xF7;//  mask is 1111 0111 which means tofs are forbidden
-	break;
+    	*PollVector = *PollVector & 0xF7;//  mask is 1111 0111 which means tofs are forbidden
+    	if(CommShMem[3] == 32)
+			CSM->state = CSM_NONE;
+		else if(CommShMem[3] == 128)
+			CSM->state = CSM_TOFS_AND_MOT;
+		else
+			goto CSM_Err;
+    	break;
     case CSM_TOFS_AND_MOT:
-	*PollVector = *PollVector & 0xFF;//  mask is 1111 1111 which means everything is permited
-	break;
-    case CSM_SLEEP:
-	*PollVector = *PollVector & 0xE3;//  mask is 1110 0011 which means 5V mot, tos are forbidden
-	break;
-    case CSM_SHUTDOWN:
-	*PollVector = *PollVector & 0xE3;//  mask is 1110 0011 which means 5V mot, tos are forbidden
-	break;
+    	*PollVector = *PollVector & 0xFF;//  mask is 1111 1111 which means everything is permited
+    	if(CommShMem[3] == 32)
+    		CSM->state = CSM_NONE;
+    	else if (CommShMem[3] == 256)
+    		CSM->state = CSM_MOT;
+    	else if (CommShMem[3] == 512)
+    		CSM->state = CSM_TOFS;
+    	else
+    		goto CSM_Err;
+    	break;
+    case CSM_SLEEP:	//only time can take it from here this should be modified so mcu goas to sleep aswell
+       	*PollVector = *PollVector & 0xE3;//  mask is 1110 0011 which means 5V mot, tos are forbidden
+       	if(CSM->sleep_timer == 0)
+       		CSM->state = CSM_NONE;
+       	CSM->sleep_timer--;
+    	break;
+    case CSM_SHUTDOWN:	//only power button can take it from here. TODO make mcu go to sleep.
+    	*PollVector = *PollVector & 0xE3;//  mask is 1110 0011 which means 5V mot, tos are forbidden
+    	if(power_button_state == 1)
+    		CSM->state = CSM_NONE;
+    	break;
     default:
-	break;
+    	break;
 
 	}
+    //for future error handling
+CSM_Err:
+    //set own state to shm
+    CommShMem[6] = CSM->state;
+
+
     }
 
 #endif /* INC_COMUNICATION_STATE_MACHINE_H_ */
