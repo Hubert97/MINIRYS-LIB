@@ -20,7 +20,7 @@ struct VCtateMachineDataType{
 
 void VCStateMachineInit(struct VCtateMachineDataType *VCSM)
     {
-    VCSM->state = VCSM_ALL_OFF;
+    VCSM->state = VCSM_TOFS_MOT;
     }
 
 /**
@@ -42,36 +42,38 @@ void VCStateMachineInit(struct VCtateMachineDataType *VCSM)
  *
  */
 
-void VCSM_Runtime(struct VCtateMachineDataType *VCSM, analog_data *analog_inputs,const uint8_t *PreviousPollVector , uint8_t *PollVector)
+void VCSM_Runtime(struct VCtateMachineDataType *VCSM, volatile analog_data *analog_inputs,const uint8_t *PreviousPollVector , uint8_t *PollVector)
     {
     //static uint_fast8_t counter;
     switch(VCSM->state)
 	{
     case VCSM_ALL_OFF:
-	*PollVector = *PollVector & 0x81; // mask is 1000 0001 which means all non 3.3V efectors are forbidden
-	break;
+    	//nie wychodzimy z tád jedynie reset moze naprawic sprawe
+		*PollVector = *PollVector & 0x81; // mask is 1000 0001 which means all non 3.3V efectors are forbidden
+		break;
     case VCSM_MAIN_12V_ON:
-
-	*PollVector = *PollVector & 0xE3; // mask is 1110 0011 which means only 12V line is perrmited
-	break;
+    	//jesli zbyt niskie napiecie na 12V to wylacz 12V
+    	*PollVector = *PollVector & 0xE3; // mask is 1110 0011 which means only 12V line is perrmited
+    	break;
     case VCSM_MAIN_12V_5V_ON:
-
-	*PollVector = *PollVector & 0xE7; // mask is 1110 0111 which means 5V and 12 V is permiteed
-	break;
+    	//jezeli zbyt niskie napiecie na 5V to wylacz 5V
+    	*PollVector = *PollVector & 0xE7; // mask is 1110 0111 which means 5V and 12 V is permiteed
+    	break;
     case VCSM_MOT:
-
-	*PollVector = *PollVector & 0xFE; // mask is 1111 0111 which means only tofs forbidden
-	break;
+    	//jesli st motory wlaczone i zbyt niskie napiecie na linni 12V wylacz motory
+    	*PollVector = *PollVector & 0xFE; // mask is 1111 0111 which means only tofs forbidden
+    	break;
     case VCSM_TOFS:
-
-	*PollVector = *PollVector & 0xEF; // mask is 1110 1111 which means only mot is forbidden
-	break;
+    	// jesli zbyrt niskie napiecie na 5V to wylacz tofy
+    	*PollVector = *PollVector & 0xEF; // mask is 1110 1111 which means only mot is forbidden
+    	break;
     case VCSM_TOFS_MOT:
-
-	*PollVector = *PollVector & 0xFF; // mask is 1111 1111 which means none is forbidden
-	break;
+    	//jesli zbyt niskie napiecei na 5V to wylacz tof
+    	//jesli st motory wlaczone i zbyt niskie napiecie na linni 12V wylacz motory
+    	*PollVector = *PollVector & 0xFF; // mask is 1111 1111 which means none is forbidden
+    	break;
     default:
-	break;
+    	break;
 
 	}
 

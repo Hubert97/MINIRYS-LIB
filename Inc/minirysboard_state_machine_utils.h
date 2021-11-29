@@ -27,7 +27,7 @@
 
 typedef struct MSM_InputsDataType
     {
-	analog_data ADCInput[12];
+	volatile analog_data ADCInput[11];
 	/*
 	0-2 Cell1Voltage[3];
 	3-4 ChasisTmp[2];

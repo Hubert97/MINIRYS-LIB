@@ -21,6 +21,8 @@ struct VCtateMachineDataType VCM;
 void MSM_StateInit(struct MSM_StateDataType *MSM)
     {
     MSM->state = MSM_RUN_STATE;
+    VCStateMachineInit(&VCM);
+
     }
 
 
@@ -68,7 +70,7 @@ void MSM_StateInit(struct MSM_StateDataType *MSM)
  * | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | - vector from voltage state machine - it detects low VBAT so it shutsdown everything but internal temp sensors and rpi
  *
  * __7___6___5___4___3___2___1___0__
- * | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | - final vector - and operation is performed on vectors above. in this case we can only
+ * | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 1 | - final vector - and operation is performed on vectors above. in this case 5V is enabled and sensors
  *
  * 7 - unused
  * 6 - FAN Enable
@@ -91,30 +93,45 @@ void MSM_RunStateRuntime(struct MSM_StateDataType  * Robot_State)
     switch(Robot_State->BoardConfiguration)
 	{
     case 0:
-	break;
+    	break;
     case 1:
-	PollVector=0x89;//  set execution vector to max allowed config
-	CommSM_Runtime(&CM, ModbusDATA, &PollVector,0);//run comms state machine
-	VCSM_Runtime(&VCM, ModbusDATA, &PollVector, &PollVector);
-	// todo run voltage/current state machine
-	break;
+    	//unused
+    	PollVector=0x89;//  set execution vector to sensors only
+    	CommSM_Runtime(&CM, ModbusDATA, &PollVector,0);//run comms state machine
+    	VCSM_Runtime(&VCM, Robot_State->AnalogInputs.ADCInput, &PollVector, &PollVector);// todo run voltage/current state machine
+    	break;
     case 2:
-	// todo set execution vector to max allowed config
-	// todo run comms state machine
-	// todo run voltage/current state machine
-	// todo run temperature state machine
-	break;
+    	PollVector=0xFF;  //set execution vector to max allowed config
+    	CommSM_Runtime(&CM, ModbusDATA, &PollVector,0);  //  run comms state machine
+    	VCSM_Runtime(&VCM, Robot_State->AnalogInputs.ADCInput, &PollVector, &PollVector);  // run voltage/current state machine
+    	TSM_Runtime(&TSM, Robot_State->AnalogInputs.ADCInput,&PollVector);  //  run temperature state machine
+    	break;
     case 3:
-	// todo set execution vector to max allowed config
-	// todo run comms state machine
-	// todo run voltage/current state machine
-	// TSM_Runtime(&TSM,(Robot_State->AnalogInputs.ADCInput), &PollVector);// todo run temperature state machine
-	// todo run fan controller
-	break;
+    	//unused
+    	// todo set execution vector to max allowed config
+    	// todo run comms state machine
+    	// todo run voltage/current state machine
+    	// TSM_Runtime(&TSM,(Robot_State->AnalogInputs.ADCInput), &PollVector);// todo run temperature state machine
+    	// todo run fan controller
+    	break;
 	}
-    // todo execute state
+    // execute state
+    HAL_GPIO_WritePin(ENABLE_STEPPER_MOTORS_GPIO_Port, ENABLE_STEPPER_MOTORS_Pin, !!(PollVector & 0x10)); //Set state to stepper motors
+    HAL_GPIO_WritePin(ENABLE_TOFS_GPIO_Port, ENABLE_TOFS_Pin, !!(PollVector & 0x08)); // Set state to tofs
+    HAL_GPIO_WritePin(ENABLE_RAIL_5V_GPIO_Port, ENABLE_RAIL_5V_Pin, !!(PollVector & 0x04));
+    HAL_GPIO_WritePin(ENABLE_RAIL_12V_GPIO_Port, ENABLE_RAIL_12V_Pin, !!(PollVector & 0x02));
+    HAL_GPIO_WritePin(ENABLE_SENSORS_GPIO_Port, ENABLE_SENSORS_Pin, !!(PollVector & 0x01));
+    if(!!(PollVector & 0x20))
+    {
+    	Robot_State->OutputData.FanPWM = 255;
+    }
+    else
+    {
+    	Robot_State->OutputData.FanPWM = 127;
+    }
+
     // todo assert error table
-    // todo assert data from RPI4
+
 
     }
 
@@ -133,35 +150,36 @@ void MSM_Runtime(struct MSM_StateDataType  * Robot_State)
     {
 
     static int Timer;
-    switch(Robot_State->state)
-	{
+    switch(Robot_State->state){
     case MSM_SHUTDOWN:
 	//todo better debouce
-	if(!HAL_GPIO_ReadPin(POWER_SWITCH_GPIO_Port, POWER_SWITCH_Pin))
+    	if(!HAL_GPIO_ReadPin(POWER_SWITCH_GPIO_Port, POWER_SWITCH_Pin))
 	    {
-	   osDelay(10);
+    		HAL_Delay(10);
 	    if(!HAL_GPIO_ReadPin(POWER_SWITCH_GPIO_Port, POWER_SWITCH_Pin))
 		{
-		Robot_State->state = MSM_INIT;
+	    	Robot_State->state = MSM_INIT;
 		}
 	    }
-	break;
+    	break;
     case MSM_INIT:
 	//MSM_PreflightCheck(Robot_State);
 	//runs once init all state machines.
 
-	Robot_State->state = MSM_RUN_STATE;
-	break;
+    	Robot_State->state = MSM_RUN_STATE;
+		break;
     case MSM_RUN_STATE:
-	if(Timer >100000)
-	    {
-	    HAL_GPIO_TogglePin(LED_G_GPIO_Port, LED_B_Pin);
+	//if(Timer >1000)
+	  //  {
+    	Robot_State->BoardConfiguration = 1;
+    	MSM_RunStateRuntime(Robot_State);
+	    HAL_GPIO_TogglePin(LED_G_GPIO_Port, LED_G_Pin);
 	    Timer = 0;
-	    }
+	    //}
 	//MSM_RunStateRuntime(Robot_State);
-	break;
+	    break;
     case MSM_SLLEP:
-	break;
+    	break;
     }
     Timer++;
     // RUN STATE Start

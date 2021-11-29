@@ -10,9 +10,10 @@
 #include <minirysboard_state_machine_utils.h>
 
 #define analog_data uint16_t
-#define TEMP_60_DEG 1234
-#define TEMP_50_DEG 1234
-#define TEMP_70_DEG 1234
+#define HYSTERESIS 3
+#define TEMP_50_DEG 1458
+#define TEMP_60_DEG 1495
+#define TEMP_70_DEG 1533
 
 enum TState {TSM_MAX_FAN, TSM_RPI_CONTROL, TSM_MAX_FAN_VETO_VMOT, TSM_MAX_FAN_5V_VETO_VMOT_VETO };
 
@@ -55,42 +56,57 @@ void TStateMachineInit(struct TStateMachineDataType *TSM)
  *
  */
 
-void TSM_Runtime(struct TStateMachineDataType *TSM, analog_data * analog_inputs, uint8_t *PollVector)
+void TSM_Runtime(struct TStateMachineDataType *TSM,volatile analog_data * analog_inputs, uint8_t *PollVector)
     {
     switch(TSM->state)
 	{
     case TSM_MAX_FAN:
-	/*
-	 * If temp low eouth and comms from rpi go to state TSM_RPI_COMMAND
-	 */
-	if(	analog_inputs[3] < TEMP_60_DEG &&
-		analog_inputs[4] < TEMP_60_DEG &&
-		analog_inputs[5] < TEMP_50_DEG &&
-		analog_inputs[6] < TEMP_50_DEG &&
-		analog_inputs[7] < TEMP_50_DEG &&
-		1 //todo put check for comms fith rpi
-	)
-	*PollVector = *PollVector & 0xFF;//  mask is 1111 1111 which means all is permited and emergency fan is on
-	break;
+    	/*
+    	 * If temp low eouth and comms from rpi go to state TSM_RPI_COMMAND
+    	 */
+		*PollVector = *PollVector & 0xFF;//  mask is 1111 1111 which means all is permited and emergency fan is on
+    	if(	analog_inputs[3] < TEMP_60_DEG - HYSTERESIS &&
+    			analog_inputs[4] < TEMP_60_DEG - HYSTERESIS &&
+				analog_inputs[5] < TEMP_50_DEG - HYSTERESIS &&
+				analog_inputs[6] < TEMP_50_DEG - HYSTERESIS &&
+				analog_inputs[7] < TEMP_50_DEG - HYSTERESIS &&
+				1 //todo put check for comms fith rpi
+    	)
+    	{
+    		TSM->state = TSM_RPI_CONTROL;
+    	}
+
+		break;
     case TSM_RPI_CONTROL:
-	/*
-	 * If any tem sensor is over threshoald then go to max FAN
-	 */
-	if(	analog_inputs[3] > TEMP_60_DEG ||
-		analog_inputs[4] > TEMP_60_DEG ||
-		analog_inputs[5] > TEMP_50_DEG ||
-		analog_inputs[6] > TEMP_50_DEG ||
-		analog_inputs[7] > TEMP_50_DEG ||
-		0 //todo put check for comms fith rpi
-	)
-	*PollVector = *PollVector & 0xDF;//  mask is 1101 1111 which means all is permited and emergency fan is off
-	break;
+    	/*
+    	 * If any tem sensor is over threshoald then go to max FAN
+    	 */
+		*PollVector = *PollVector & 0xDF;//  mask is 1101 1111 which means all is permited and emergency fan is off
+    	if(	analog_inputs[3] > TEMP_60_DEG ||
+    			analog_inputs[4] > TEMP_60_DEG ||
+				analog_inputs[5] > TEMP_50_DEG ||
+				analog_inputs[6] > TEMP_50_DEG ||
+				analog_inputs[7] > TEMP_50_DEG ||
+				0 //todo put check for comms fith rpi
+    	)
+    	{
+    		TSM->state = TSM_MAX_FAN;
+    	}
+
+		break;
     case TSM_MAX_FAN_VETO_VMOT:
+    	*PollVector = *PollVector & 0xEF;//  mask is 1110 1111 which means emergency fan on, VMOT off
+    	if (0)
+    	{
+
+
+    	}
+
 	break;
-	*PollVector = *PollVector & 0xEF;//  mask is 1110 1111 which means emergency fan on, VMOT off
+
     case TSM_MAX_FAN_5V_VETO_VMOT_VETO:
-	*PollVector = *PollVector & 0xEF;//  mask is 1110 0011 which means emergency fan on, VMOT off %V off and TOF off
-	break;
+    	*PollVector = *PollVector & 0xEF;//  mask is 1110 0011 which means emergency fan on, VMOT off %V off and TOF off
+    	break;
 
 
 

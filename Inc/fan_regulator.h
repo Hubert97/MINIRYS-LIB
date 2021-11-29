@@ -10,7 +10,8 @@
 
 struct FanRegulatorDataType{
     uint8_t state;
-
+    uint8_t counter;
+    uint8_t set_vall;
 
 };
 
