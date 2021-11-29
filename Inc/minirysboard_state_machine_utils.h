@@ -8,7 +8,7 @@
 #ifndef INC_MINIRYSBOARD_STATE_MACHINE_UTILS_H_
 #define INC_MINIRYSBOARD_STATE_MACHINE_UTILS_H_
 #include "main.h"
-#include "temperature_state_machine.h"
+
 #define analog_data uint16_t
 
 #define MAX_CURRENT_INT 1234
@@ -20,24 +20,36 @@
 
 
 
+union AnalogInputsData {
+    struct _data{ // either this
+        analog_data VolateProbe20V;
+        analog_data VoltageProbe5V;
+
+        analog_data ChasisTmp0;
+        analog_data ChasisTmp1;
+        analog_data BoardTmp0;
+        analog_data BoardTmp1;
+
+    	analog_data Cell1Voltage0;
+    	analog_data Cell1Voltage1;
+    	analog_data Cell1Voltage2;
+
+        analog_data BatCurrent;
+        analog_data BoardTmp2;
+
+    } data; // or this
+    volatile analog_data ADCInput[11];
+} ;
 
 
 
 
-
-typedef struct MSM_InputsDataType
+struct MSM_InputsDataType
     {
 	volatile analog_data ADCInput[11];
-	/*
-	0-2 Cell1Voltage[3];
-	3-4 ChasisTmp[2];
-	5-7 BoardTemp[3];
-	8 RPILineVoltage;
-	9 VBatLineVoltage;
-	10 BatCurrentVoltage;
-	*/
 
-    } AnalogInputsData;
+
+    };
 
 typedef struct MSM_OutputsDataType
     {
@@ -60,7 +72,8 @@ typedef struct MSM_OutputsDataType
 
 typedef struct MSM_StateDataType
     {
-	struct MSM_InputsDataType AnalogInputs;
+	union AnalogInputsData AnalogInputs;
+	//struct MSM_InputsDataType AnalogInputs;
 	uint16_t FanSpeedRPM;
 	uint8_t BoardConfiguration;
 	enum MSMState state;
@@ -78,16 +91,27 @@ typedef struct MSM_StateDataType
       * @brief  Blindly copies data from one container to different - something like memcpy. Data type is analog_data
       * @note   This function will not check if its out of bounds caution required
       *
-      * @param hadc ADC handle
-      * @param pData Destination Buffer address.
-      * @param Length Number of data to be transferred from ADC peripheral to memory
+      *
+      * @param Dest Destination Buffer address.
+      * @param NoOfBytes Number of data to be transferred from ADC peripheral to memory
+      *
       *
       */
-void MSM_DataCopy(analog_data * Dest,const analog_data * Source, uint8_t NoOfBytes )
+void MSM_Cppy_Analog_Data(analog_data * Dest,const union AnalogInputsData * Source, uint8_t NoOfBytes )
     {
+
+	/*
+	0-2 Cell1Voltage[3];
+	3-4 ChasisTmp[2];
+	5-7 BoardTemp[3];
+	8 RPILineVoltage;
+	9 VBatLineVoltage;
+	10 BatCurrentVoltage;
+	*/
+
     for(int i =0; i<NoOfBytes;++i)
 	{
-	Dest[i]=Source[i];
+	Dest[i]=Source->ADCInput[i];
 	}
 
 

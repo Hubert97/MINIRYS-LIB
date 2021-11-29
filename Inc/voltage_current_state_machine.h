@@ -8,7 +8,7 @@
 #ifndef INC_VOLTAGE_CURRENT_STATE_MACHINE_H_
 #define INC_VOLTAGE_CURRENT_STATE_MACHINE_H_
 #define analog_data uint16_t
-
+#include "minirysboard_state_machine_utils.h"
 
 enum VCState {VCSM_ALL_OFF, VCSM_MAIN_12V_ON, VCSM_MAIN_12V_5V_ON, VCSM_MOT, VCSM_TOFS, VCSM_TOFS_MOT };
 
@@ -42,7 +42,7 @@ void VCStateMachineInit(struct VCtateMachineDataType *VCSM)
  *
  */
 
-void VCSM_Runtime(struct VCtateMachineDataType *VCSM, volatile analog_data *analog_inputs,const uint8_t *PreviousPollVector , uint8_t *PollVector)
+void VCSM_Runtime(struct VCtateMachineDataType *VCSM, union AnalogInputsData * analog_inputs,const uint8_t *PreviousPollVector , uint8_t *PollVector)
     {
     //static uint_fast8_t counter;
     switch(VCSM->state)

@@ -56,8 +56,9 @@ void TStateMachineInit(struct TStateMachineDataType *TSM)
  *
  */
 
-void TSM_Runtime(struct TStateMachineDataType *TSM,volatile analog_data * analog_inputs, uint8_t *PollVector)
+void TSM_Runtime(struct TStateMachineDataType *TSM,union AnalogInputsData * analog_inputs, uint8_t *PollVector)
     {
+
     switch(TSM->state)
 	{
     case TSM_MAX_FAN:
@@ -65,33 +66,40 @@ void TSM_Runtime(struct TStateMachineDataType *TSM,volatile analog_data * analog
     	 * If temp low eouth and comms from rpi go to state TSM_RPI_COMMAND
     	 */
 		*PollVector = *PollVector & 0xFF;//  mask is 1111 1111 which means all is permited and emergency fan is on
-    	if(	analog_inputs[3] < TEMP_60_DEG - HYSTERESIS &&
-    			analog_inputs[4] < TEMP_60_DEG - HYSTERESIS &&
-				analog_inputs[5] < TEMP_50_DEG - HYSTERESIS &&
-				analog_inputs[6] < TEMP_50_DEG - HYSTERESIS &&
-				analog_inputs[7] < TEMP_50_DEG - HYSTERESIS &&
-				1 //todo put check for comms fith rpi
+    	if(	analog_inputs->data.BoardTmp0 < TEMP_50_DEG - HYSTERESIS &&
+			analog_inputs->data.BoardTmp1 < TEMP_50_DEG - HYSTERESIS &&
+			analog_inputs->data.BoardTmp2 < TEMP_50_DEG - HYSTERESIS &&
+			1 //todo put check for comms fith rpi
     	)
     	{
     		TSM->state = TSM_RPI_CONTROL;
     	}
+    	/*
+    	if (analog_inputs->data.ChasisTmp0 < TEMP_60_DEG - HYSTERESIS &&
+    		analog_inputs->data.ChasisTmp1 < TEMP_60_DEG - HYSTERESIS )
+    	{
 
+    	}
+ 	 	 */
 		break;
     case TSM_RPI_CONTROL:
     	/*
     	 * If any tem sensor is over threshoald then go to max FAN
     	 */
 		*PollVector = *PollVector & 0xDF;//  mask is 1101 1111 which means all is permited and emergency fan is off
-    	if(	analog_inputs[3] > TEMP_60_DEG ||
-    			analog_inputs[4] > TEMP_60_DEG ||
-				analog_inputs[5] > TEMP_50_DEG ||
-				analog_inputs[6] > TEMP_50_DEG ||
-				analog_inputs[7] > TEMP_50_DEG ||
-				0 //todo put check for comms fith rpi
+    	if(	analog_inputs->data.BoardTmp0 > TEMP_50_DEG ||
+			analog_inputs->data.BoardTmp1 > TEMP_50_DEG ||
+			analog_inputs->data.BoardTmp2 > TEMP_50_DEG ||
+			0 //todo put check for comms fith rpi
     	)
     	{
     		TSM->state = TSM_MAX_FAN;
     	}
+    	/*
+    	 *
+    	 * analog_inputs->data.ChasisTmp0 > TEMP_60_DEG ||
+    	analog_inputs->data.ChasisTmp1 > TEMP_60_DEG ||
+    	 */
 
 		break;
     case TSM_MAX_FAN_VETO_VMOT:

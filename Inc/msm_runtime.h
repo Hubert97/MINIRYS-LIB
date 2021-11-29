@@ -100,13 +100,13 @@ void MSM_RunStateRuntime(struct MSM_StateDataType  * Robot_State)
     	//unused
     	PollVector=0x89;//  set execution vector to sensors only
     	CommSM_Runtime(&CM, ModbusDATA, &PollVector,0);//run comms state machine
-    	VCSM_Runtime(&VCM, Robot_State->AnalogInputs.ADCInput, &PollVector, &PollVector);// todo run voltage/current state machine
+    	VCSM_Runtime(&VCM, &(Robot_State->AnalogInputs), &PollVector, &PollVector);// todo run voltage/current state machine
     	break;
     case 2:
     	PollVector=0xFF;  //set execution vector to max allowed config
-    	CommSM_Runtime(&CM, ModbusDATA, &PollVector,0);  //  run comms state machine
-    	VCSM_Runtime(&VCM, Robot_State->AnalogInputs.ADCInput, &PollVector, &PollVector);  // run voltage/current state machine
-    	TSM_Runtime(&TSM, Robot_State->AnalogInputs.ADCInput,&PollVector);  //  run temperature state machine
+    	CommSM_Runtime(&CM, ModbusDATA, &PollVector, 0);  //  run comms state machine
+    	VCSM_Runtime(&VCM, &(Robot_State->AnalogInputs), &PollVector, &PollVector);  // run voltage/current state machine
+    	TSM_Runtime(&TSM, &(Robot_State->AnalogInputs), &PollVector);  //  run temperature state machine
     	break;
     case 3:
     	//unused
