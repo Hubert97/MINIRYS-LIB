@@ -22,7 +22,9 @@ void MSM_StateInit(struct MSM_StateDataType *MSM)
     {
     MSM->state = MSM_RUN_STATE;
     VCStateMachineInit(&VCM);
-
+    TStateMachineInit(&TSM);
+    CommStateMachineInit(&CM);
+    MSM->BoardConfiguration = 2;
     }
 
 
@@ -169,11 +171,8 @@ void MSM_Runtime(struct MSM_StateDataType  * Robot_State)
     	Robot_State->state = MSM_RUN_STATE;
 		break;
     case MSM_RUN_STATE:
-	//if(Timer >1000)
-	  //  {
-    	Robot_State->BoardConfiguration = 1;
+
     	MSM_RunStateRuntime(Robot_State);
-	    HAL_GPIO_TogglePin(LED_G_GPIO_Port, LED_G_Pin);
 	    Timer = 0;
 	    //}
 	//MSM_RunStateRuntime(Robot_State);

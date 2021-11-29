@@ -9,9 +9,13 @@
 
 #ifndef INC_IO_CHECK_H_
 #define INC_IO_CHECK_H_
+
 #include "main.h"
+
 #include <stdio.h>
 #include <string.h>
+
+
 
 void TEST_IO(){
 
@@ -134,16 +138,15 @@ void TEST_IO(){
 		HAL_GPIO_WritePin(ENABLE_SENSORS_GPIO_Port, ENABLE_SENSORS_Pin, 0);
 
 		char buffer [256];
-for (int i =0 ; i<256;++i)
-{
-	buffer[i] = '\0';
-}
+		for (int i =0 ; i<256;++i)
+		{
+			buffer[i] = '\0';
+		}
 
-
-		for (int i =0; i<11 ;i++)
+		for (int i = 0; i < 11 ; i++)
 		{
 			char tmp [32];
-			sprintf(tmp,"ADC%d: %d\r\n",i,MachineStateData.AnalogInputs.ADCInput[i]);
+			sprintf(tmp,"ADC%d: %d\r\n" ,i , MachineStateData.AnalogInputs.ADCInput[i]);
 			strcat(buffer,tmp);
 		}
 
