@@ -66,6 +66,9 @@ void TSM_Runtime(struct TStateMachineDataType *TSM,union AnalogInputsData * anal
     	 * If temp low eouth and comms from rpi go to state TSM_RPI_COMMAND
     	 */
 		*PollVector = *PollVector & 0xFF;//  mask is 1111 1111 which means all is permited and emergency fan is on
+
+
+		//if temp is lower than 50 deg and we have rpi steering the fan
     	if(	analog_inputs->data.BoardTmp0 < TEMP_50_DEG - HYSTERESIS &&
 			analog_inputs->data.BoardTmp1 < TEMP_50_DEG - HYSTERESIS &&
 			analog_inputs->data.BoardTmp2 < TEMP_50_DEG - HYSTERESIS &&
@@ -81,12 +84,20 @@ void TSM_Runtime(struct TStateMachineDataType *TSM,union AnalogInputsData * anal
 
     	}
  	 	 */
+
+
+
+
+
 		break;
     case TSM_RPI_CONTROL:
     	/*
     	 * If any tem sensor is over threshoald then go to max FAN
     	 */
+
+    	//if temp is over high level or rpi is not steering the fan.
 		*PollVector = *PollVector & 0xDF;//  mask is 1101 1111 which means all is permited and emergency fan is off
+
     	if(	analog_inputs->data.BoardTmp0 > TEMP_50_DEG ||
 			analog_inputs->data.BoardTmp1 > TEMP_50_DEG ||
 			analog_inputs->data.BoardTmp2 > TEMP_50_DEG ||
@@ -98,22 +109,22 @@ void TSM_Runtime(struct TStateMachineDataType *TSM,union AnalogInputsData * anal
     	/*
     	 *
     	 * analog_inputs->data.ChasisTmp0 > TEMP_60_DEG ||
-    	analog_inputs->data.ChasisTmp1 > TEMP_60_DEG ||
+    	   analog_inputs->data.ChasisTmp1 > TEMP_60_DEG ||
     	 */
+
+
+
+
 
 		break;
     case TSM_MAX_FAN_VETO_VMOT:
     	*PollVector = *PollVector & 0xEF;//  mask is 1110 1111 which means emergency fan on, VMOT off
-    	if (0)
-    	{
 
-
-    	}
 
 	break;
 
     case TSM_MAX_FAN_5V_VETO_VMOT_VETO:
-    	*PollVector = *PollVector & 0xEF;//  mask is 1110 0011 which means emergency fan on, VMOT off %V off and TOF off
+    	*PollVector = *PollVector & 0xE3;//  mask is 1110 0011 which means emergency fan on, VMOT off %V off and TOF off
     	break;
 
 

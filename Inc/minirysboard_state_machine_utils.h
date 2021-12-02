@@ -97,22 +97,40 @@ typedef struct MSM_StateDataType
       *
       *
       */
-void MSM_Cppy_Analog_Data(analog_data * Dest,const union AnalogInputsData * Source, uint8_t NoOfBytes )
+void MSM_Cppy_Analog_Data(const union AnalogInputsData * Inputs)
     {
 
 	/*
-	0-2 Cell1Voltage[3];
-	3-4 ChasisTmp[2];
-	5-7 BoardTemp[3];
-	8 RPILineVoltage;
-	9 VBatLineVoltage;
-	10 BatCurrentVoltage;
-	*/
+	 *
+	 *
+	 * This is because registers were set for diffrent
+	 *  processor and i dont want to constrtrain this lib
+	 *  to only one cpu so this inefficiency is neccecery
+	 *  Too bad - somethin somethin chip shortage something
+	 *
+	 *   Template
+	 *
+		0-2 Cell1Voltage[3];
+		3-4 ChasisTmp[2];
+		5-7 BoardTemp[3];
+		8 RPILineVoltage;
+		9 VBatLineVoltage;
+		10 BatCurrentVoltage;
 
-    for(int i =0; i<NoOfBytes;++i)
-	{
-	Dest[i]=Source->ADCInput[i];
-	}
+	*/
+	ModbusDATA[11] = Inputs->data.Cell1Voltage0;
+	ModbusDATA[12] = Inputs->data.Cell1Voltage1;
+	ModbusDATA[13] = Inputs->data.Cell1Voltage2;
+	ModbusDATA[14] = Inputs->data.ChasisTmp0;
+	ModbusDATA[15] = Inputs->data.ChasisTmp1;
+	ModbusDATA[16] = Inputs->data.BoardTmp0;
+	ModbusDATA[17] = Inputs->data.BoardTmp1;
+	ModbusDATA[18] = Inputs->data.BoardTmp2;
+	ModbusDATA[19] = Inputs->data.VoltageProbe5V;
+	ModbusDATA[20] = Inputs->data.VolateProbe20V;
+	ModbusDATA[21] = Inputs->data.BatCurrent;
+
+
 
 
     }

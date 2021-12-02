@@ -55,45 +55,46 @@ void CommSM_Runtime(struct CommStateMachineDataType *CSM, uint16_t *CommShMem ,u
 	{
     case CSM_NONE:
     	*PollVector = *PollVector & 0xE7;//  mask is 1110 0111 which means mot and tofs are forbidden
-    	if(CommShMem[3] == 8)	//this sucks but will work for now.
+    	if(CommShMem[3] == 0x08)	//this sucks but will work for now.
     		CSM->state = CSM_SHUTDOWN;
-    	else if(CommShMem[3] == 2)
+    	else if(CommShMem[3] == 0x02)
     	{
     		CSM->state = CSM_SLEEP;
     		CSM->sleep_timer = CommShMem[4];
+    		CommShMem[4] =0x00;
     	}
-    	else if(CommShMem[3] == 4)
+    	else if(CommShMem[3] == 0x04)
     		CSM->state = CSM_TOFS;
-    	else if(CommShMem[3] == 16)
+    	else if(CommShMem[3] == 0x10)
     		CSM->state = CSM_MOT;
     	else
     		goto CSM_Err; //goto land fill
     	break;
     case CSM_TOFS:
     	*PollVector = *PollVector & 0xEF;//  mask is 1110 1111 which means mot is forbidden
-    	if(CommShMem[3] == 32)
+    	if(CommShMem[3] == 0x20)
     		CSM->state = CSM_NONE;
-    	else if(CommShMem[3] == 64)
+    	else if(CommShMem[3] == 0x40)
     		CSM->state = CSM_TOFS_AND_MOT;
     	else
     		goto CSM_Err;
     	break;
     case CSM_MOT:
     	*PollVector = *PollVector & 0xF7;//  mask is 1111 0111 which means tofs are forbidden
-    	if(CommShMem[3] == 32)
+    	if(CommShMem[3] == 0x10)
 			CSM->state = CSM_NONE;
-		else if(CommShMem[3] == 128)
+		else if(CommShMem[3] == 0x80)
 			CSM->state = CSM_TOFS_AND_MOT;
 		else
 			goto CSM_Err;
     	break;
     case CSM_TOFS_AND_MOT:
     	*PollVector = *PollVector & 0xFF;//  mask is 1111 1111 which means everything is permited
-    	if(CommShMem[3] == 32)
+    	if(CommShMem[3] == 0x10)
     		CSM->state = CSM_NONE;
-    	else if (CommShMem[3] == 256)
+    	else if (CommShMem[3] == 0x100)
     		CSM->state = CSM_MOT;
-    	else if (CommShMem[3] == 512)
+    	else if (CommShMem[3] == 0x200)
     		CSM->state = CSM_TOFS;
     	else
     		goto CSM_Err;
@@ -113,10 +114,12 @@ void CommSM_Runtime(struct CommStateMachineDataType *CSM, uint16_t *CommShMem ,u
     	break;
 
 	}
+
     //for future error handling
 CSM_Err:
     //set own state to shm
     CommShMem[6] = CSM->state;
+    CommShMem[3] = 0x00;
 
 
     }

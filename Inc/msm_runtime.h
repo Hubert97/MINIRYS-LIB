@@ -12,6 +12,7 @@
 #include "temperature_state_machine.h"
 #include "comunication_state_machine.h"
 #include "voltage_current_state_machine.h"
+#include "fan_state_machine.h"
 
 struct TStateMachineDataType TSM;
 struct CommStateMachineDataType CM;
@@ -91,7 +92,9 @@ void MSM_RunStateRuntime(struct MSM_StateDataType  * Robot_State)
 
     static uint8_t PollVector;
 
-    MSM_CheckAnalogSensors(Robot_State);
+    MSM_CheckAnalogSensors(Robot_State); //nic nie robi
+    Robot_State->OutputData.FanPWM = ModbusDATA[9];  // magiczna konwersja z 16 bit na 8 bit. Jest to nie fajne, ale ech. todo
+
     switch(Robot_State->BoardConfiguration)
 	{
     case 0:
@@ -104,9 +107,9 @@ void MSM_RunStateRuntime(struct MSM_StateDataType  * Robot_State)
     	break;
     case 2:
     	PollVector=0xFF;  //set execution vector to max allowed config
-    	CommSM_Runtime(&CM, ModbusDATA, &PollVector, 0);  //  run comms state machine
-    	VCSM_Runtime(&VCM, &(Robot_State->AnalogInputs), &PollVector, &PollVector);  // run voltage/current state machine
-    	TSM_Runtime(&TSM, &(Robot_State->AnalogInputs), &PollVector);  //  run temperature state machine
+    	CommSM_Runtime(&CM, &ModbusDATA[0], &PollVector, 0);  //  run comms state machine
+    	//VCSM_Runtime(&VCM, &(Robot_State->AnalogInputs), &PollVector, &PollVector);  // run voltage/current state machine
+    	//TSM_Runtime(&TSM, &(Robot_State->AnalogInputs), &PollVector);  //  run temperature state machine
     	break;
     case 3:
     	//unused
@@ -117,22 +120,40 @@ void MSM_RunStateRuntime(struct MSM_StateDataType  * Robot_State)
     	// todo run fan controller
     	break;
 	}
+
     // execute state
     HAL_GPIO_WritePin(ENABLE_STEPPER_MOTORS_GPIO_Port, ENABLE_STEPPER_MOTORS_Pin, !!(PollVector & 0x10)); //Set state to stepper motors
     HAL_GPIO_WritePin(ENABLE_TOFS_GPIO_Port, ENABLE_TOFS_Pin, !!(PollVector & 0x08)); // Set state to tofs
     HAL_GPIO_WritePin(ENABLE_RAIL_5V_GPIO_Port, ENABLE_RAIL_5V_Pin, !!(PollVector & 0x04));
     HAL_GPIO_WritePin(ENABLE_RAIL_12V_GPIO_Port, ENABLE_RAIL_12V_Pin, !!(PollVector & 0x02));
-    HAL_GPIO_WritePin(ENABLE_SENSORS_GPIO_Port, ENABLE_SENSORS_Pin, !!(PollVector & 0x01));
+    HAL_GPIO_WritePin(ENABLE_SENSORS_GPIO_Port, ENABLE_SENSORS_Pin, !(PollVector & 0x01));
+
     if(!!(PollVector & 0x20))
     {
-    	Robot_State->OutputData.FanPWM = 255;
+    	Fan_Handler.set_val = 255;
     }
     else
     {
-    	Robot_State->OutputData.FanPWM = 127;
+    	Fan_Handler.set_val = Robot_State->OutputData.FanPWM;
     }
 
+    MSM_Cppy_Analog_Data(&(Robot_State->AnalogInputs)); //dump sensor data to shm
+
+
     // todo assert error table
+
+
+
+
+    static int num =0;
+    num ++;
+    if(num >100)
+    {
+    	HAL_GPIO_TogglePin(LED_R_GPIO_Port, LED_R_Pin);
+    	HAL_GPIO_TogglePin(LED_G_GPIO_Port, LED_G_Pin);
+    	HAL_GPIO_TogglePin(LED_B_GPIO_Port, LED_B_Pin);
+    	num = 0;
+    }
 
 
     }
@@ -174,8 +195,6 @@ void MSM_Runtime(struct MSM_StateDataType  * Robot_State)
 
     	MSM_RunStateRuntime(Robot_State);
 	    Timer = 0;
-	    //}
-	//MSM_RunStateRuntime(Robot_State);
 	    break;
     case MSM_SLLEP:
     	break;
