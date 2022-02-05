@@ -68,6 +68,7 @@ void COM_RX_Handler(struct COM_State* com_state,uint8_t data)
 			//answer with 0x03 - PING
 			com_state->response_buf[0] = 0x03;
 			HAL_UART_Transmit_IT(&huart1, com_state->response_buf, 1);
+			HAL_GPIO_TogglePin(LED_B_GPIO_Port, LED_B_Pin);
 			goto COM_Cleanup;
 			break;
 		default:

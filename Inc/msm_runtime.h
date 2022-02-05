@@ -128,7 +128,7 @@ void MSM_RunStateRuntime(struct MSM_StateDataType  * Robot_State)
     HAL_GPIO_WritePin(ENABLE_RAIL_12V_GPIO_Port, ENABLE_RAIL_12V_Pin, !!(PollVector & 0x02));
     HAL_GPIO_WritePin(ENABLE_SENSORS_GPIO_Port, ENABLE_SENSORS_Pin, !(PollVector & 0x01));
 
-    if(!!(PollVector & 0x20))
+    if(0)//if(!!(PollVector & 0x20))
     {
     	Fan_Handler.set_val = 255;
     }
@@ -150,8 +150,9 @@ void MSM_RunStateRuntime(struct MSM_StateDataType  * Robot_State)
     if(num >100)
     {
     	HAL_GPIO_TogglePin(LED_R_GPIO_Port, LED_R_Pin);
-    	HAL_GPIO_TogglePin(LED_G_GPIO_Port, LED_G_Pin);
-    	HAL_GPIO_TogglePin(LED_B_GPIO_Port, LED_B_Pin);
+    	//HAL_GPIO_TogglePin(LED_G_GPIO_Port, LED_G_Pin);
+    	//HAL_GPIO_TogglePin(LED_B_GPIO_Port, LED_B_Pin);
+
     	num = 0;
     }
 
